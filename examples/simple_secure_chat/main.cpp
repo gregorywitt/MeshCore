@@ -161,9 +161,9 @@ class MyMesh : public BaseChatMesh, ContactVisitor {
     uint32_t curr = getRTCClock()->getCurrentTime();
     if (timestamp > curr) {
       getRTCClock()->setCurrentTime(timestamp);
-      Serial.println("   (OK - clock set!)");
+      Serial1.println("   (OK - clock set!)");
     } else {
-      Serial.println("   (ERR: clock cannot go backwards)");
+      Serial1.println("   (ERR: clock cannot go backwards)");
     }
   }
 
@@ -186,7 +186,7 @@ class MyMesh : public BaseChatMesh, ContactVisitor {
         }
       }
     }
-    Serial.println("   error: invalid format");
+    Serial1.println("   error: invalid format");
   }
 
 protected:
@@ -205,21 +205,21 @@ protected:
   void onDiscoveredContact(ContactInfo& contact, bool is_new, uint8_t path_len, const uint8_t* path) override {
     // TODO: if not in favs,  prompt to add as fav(?)
 
-    Serial.printf("ADVERT from -> %s\n", contact.name);
-    Serial.printf("  type: %s\n", getTypeName(contact.type));
-    Serial.print("   public key: "); mesh::Utils::printHex(Serial, contact.id.pub_key, PUB_KEY_SIZE); Serial.println();
+    Serial1.printf("ADVERT from -> %s\n", contact.name);
+    Serial1.printf("  type: %s\n", getTypeName(contact.type));
+    Serial1.print("   public key: "); mesh::Utils::printHex(Serial1, contact.id.pub_key, PUB_KEY_SIZE); Serial1.println();
 
     saveContacts();
   }
 
   void onContactPathUpdated(const ContactInfo& contact) override {
-    Serial.printf("PATH to: %s, path_len=%d\n", contact.name, (uint32_t) contact.out_path_len);
+    Serial1.printf("PATH to: %s, path_len=%d\n", contact.name, (uint32_t) contact.out_path_len);
     saveContacts();
   }
 
   ContactInfo* processAck(const uint8_t *data) override {
     if (memcmp(data, &expected_ack_crc, 4) == 0) {     // got an ACK from recipient
-      Serial.printf("   Got ACK! (round trip: %d millis)\n", _ms->getMillis() - last_msg_sent);
+      Serial1.printf("   Got ACK! (round trip: %d millis)\n", _ms->getMillis() - last_msg_sent);
       // NOTE: the same ACK can be received multiple times!
       expected_ack_crc = 0;  // reset our expected hash, now that we have received ACK
       return NULL;  // TODO: really should return ContactInfo pointer 
@@ -232,8 +232,8 @@ protected:
   }
 
   void onMessageRecv(const ContactInfo& from, mesh::Packet* pkt, uint32_t sender_timestamp, const char *text) override {
-    Serial.printf("(%s) MSG -> from %s\n", pkt->isRouteDirect() ? "DIRECT" : "FLOOD", from.name);
-    Serial.printf("   %s\n", text);
+    Serial1.printf("(%s) MSG -> from %s\n", pkt->isRouteDirect() ? "DIRECT" : "FLOOD", from.name);
+    Serial1.printf("   %s\n", text);
 
     if (strcmp(text, "clock sync") == 0) {  // special text command
       setClock(sender_timestamp + 1);
@@ -251,11 +251,11 @@ protected:
 
   void onChannelMessageRecv(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t timestamp, const char *text) override {
     if (pkt->isRouteDirect()) {
-      Serial.printf("PUBLIC CHANNEL MSG -> (Direct!)\n");
+      Serial1.printf("PUBLIC CHANNEL MSG -> (Direct!)\n");
     } else {
-      Serial.printf("PUBLIC CHANNEL MSG -> (Flood) hops %d\n", pkt->path_len);
+      Serial1.printf("PUBLIC CHANNEL MSG -> (Flood) hops %d\n", pkt->path_len);
     }
-    Serial.printf("   %s\n", text);
+    Serial1.printf("   %s\n", text);
   }
 
   uint8_t onContactRequest(const ContactInfo& contact, uint32_t sender_timestamp, const uint8_t* data, uint8_t len, uint8_t* reply) override {
@@ -276,7 +276,7 @@ protected:
   }
 
   void onSendTimeout() override {
-    Serial.println("   ERROR: timed out, no ACK.");
+    Serial1.println("   ERROR: timed out, no ACK.");
   }
 
 public:
@@ -286,7 +286,7 @@ public:
     // defaults
     memset(&_prefs, 0, sizeof(_prefs));
     _prefs.airtime_factor = 1.0;
-    strcpy(_prefs.node_name, "NONAME");
+    strcpy(_prefs.node_name, "calc test");
     _prefs.freq = LORA_FREQ;
     _prefs.tx_power_dbm = LORA_TX_POWER;
 
@@ -312,10 +312,10 @@ public:
   #endif
     if (!store.load("_main", self_id, _prefs.node_name, sizeof(_prefs.node_name))) {  // legacy: node_name was from identity file
       // Need way to get some entropy to seed RNG
-      Serial.println("Press ENTER to generate key:");
+      Serial1.println("Press ENTER to generate key:");
       char c = 0;
       while (c != '\n') {   // wait for ENTER to be pressed
-        if (Serial.available()) c = Serial.read();
+        if (Serial1.available()) c = Serial1.read();
       }
       ((StdRNG *)getRNG())->begin(millis());
 
@@ -361,12 +361,11 @@ public:
 
   void showWelcome() {
     Serial.println("===== MeshCore Chat Terminal =====");
-    Serial.println();
-    Serial.printf("WELCOME  %s\n", _prefs.node_name);
+    Serial1.print("\nhello ");
+    Serial1.println(_prefs.node_name);
+    Serial.printf("welcome  %s\n", _prefs.node_name);
     mesh::Utils::printHex(Serial, self_id.pub_key, PUB_KEY_SIZE);
-    Serial.println();
-    Serial.println("   (enter 'help' for basic commands)");
-    Serial.println();
+    Serial1.println("(enter 'help' for basic commands)");
   }
 
   void sendSelfAdvert(int delay_millis) {
@@ -378,11 +377,11 @@ public:
 
   // ContactVisitor
   void onContactVisit(const ContactInfo& contact) override {
-    Serial.printf("   %s - ", contact.name);
+    Serial1.printf("   %s - ", contact.name);
     char tmp[40];
     int32_t secs = contact.last_advert_timestamp - getRTCClock()->getCurrentTime();
     AdvertTimeHelper::formatRelativeTimeDiff(tmp, secs, false);
-    Serial.println(tmp);
+    Serial1.println(tmp);
   }
 
   void handleCommand(const char* command) {
@@ -395,13 +394,13 @@ public:
 
         int result = sendMessage(*curr_recipient, getRTCClock()->getCurrentTime(), 0, text, expected_ack_crc, est_timeout);
         if (result == MSG_SEND_FAILED) {
-          Serial.println("   ERROR: unable to send.");
+          Serial1.println("   ERROR: unable to send.");
         } else {
           last_msg_sent = _ms->getMillis();
-          Serial.printf("   (message sent - %s)\n", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
+          Serial1.printf("   (message sent - %s)\n", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
         }
       } else {
-        Serial.println("   ERROR: no recipient selected (use 'to' cmd).");
+        Serial1.println("   ERROR: no recipient selected (use 'to' cmd).");
       }
     } else if (memcmp(command, "public ", 7) == 0) {  // send GroupChannel msg
       uint8_t temp[5+MAX_TEXT_LEN+32];
@@ -416,9 +415,9 @@ public:
       auto pkt = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, _public->channel, temp, 5 + len);
       if (pkt) {
         sendFlood(pkt);
-        Serial.println("   Sent.");
+        Serial1.println("   Sent.");
       } else {
-        Serial.println("   ERROR: unable to send");
+        Serial1.println("   ERROR: unable to send");
       }
     } else if (memcmp(command, "list", 4) == 0) {  // show Contact list, by most recent
       int n = 0;
@@ -429,50 +428,50 @@ public:
     } else if (strcmp(command, "clock") == 0) {    // show current time
       uint32_t now = getRTCClock()->getCurrentTime();
       DateTime dt = DateTime(now);
-      Serial.printf(   "%02d:%02d - %d/%d/%d UTC\n", dt.hour(), dt.minute(), dt.day(), dt.month(), dt.year());
+      Serial1.printf(   "%02d:%02d - %d/%d/%d UTC\n", dt.hour(), dt.minute(), dt.day(), dt.month(), dt.year());
     } else if (memcmp(command, "time ", 5) == 0) {  // set time (to epoch seconds)
       uint32_t secs = _atoi(&command[5]);
       setClock(secs);
     } else if (memcmp(command, "to ", 3) == 0) {  // set current recipient
       curr_recipient = searchContactsByPrefix(&command[3]);
       if (curr_recipient) {
-        Serial.printf("   Recipient %s now selected.\n", curr_recipient->name);
+        Serial1.printf("   Recipient %s now selected.\n", curr_recipient->name);
       } else {
-        Serial.println("   Error: Name prefix not found.");
+        Serial1.println("   Error: Name prefix not found.");
       }
     } else if (strcmp(command, "to") == 0) {    // show current recipient
       if (curr_recipient) {
-         Serial.printf("   Current: %s\n", curr_recipient->name);
+         Serial1.printf("   Current: %s\n", curr_recipient->name);
       } else {
-         Serial.println("   Err: no recipient selected");
+         Serial1.println("   Err: no recipient selected");
       }
     } else if (strcmp(command, "advert") == 0) {
       auto pkt = createSelfAdvert(_prefs.node_name, _prefs.node_lat, _prefs.node_lon);
       if (pkt) {
         sendZeroHop(pkt);
-        Serial.println("   (advert sent, zero hop).");
+        Serial1.println("   (advert sent, zero hop).");
       } else {
-        Serial.println("   ERR: unable to send");
+        Serial1.println("   ERR: unable to send");
       }
     } else if (strcmp(command, "reset path") == 0) {
       if (curr_recipient) {
         resetPathTo(*curr_recipient);
         saveContacts();
-        Serial.println("   Done.");
+        Serial1.println("   Done.");
       }
     } else if (memcmp(command, "card", 4) == 0) {
-      Serial.printf("Hello %s\n", _prefs.node_name);
+      Serial1.printf("Hello %s\n", _prefs.node_name);
       auto pkt = createSelfAdvert(_prefs.node_name, _prefs.node_lat, _prefs.node_lon);
       if (pkt) {
         uint8_t len =  pkt->writeTo(tmp_buf);
         releasePacket(pkt);  // undo the obtainNewPacket()
 
         mesh::Utils::toHex(hex_buf, tmp_buf, len);
-        Serial.println("Your MeshCore biz card:");
-        Serial.print("meshcore://"); Serial.println(hex_buf);
-        Serial.println();
+        Serial1.println("Your MeshCore biz card:");
+        Serial1.print("meshcore://"); Serial1.println(hex_buf);
+        Serial1.println();
       } else {
-        Serial.println("  Error");
+        Serial1.println("  Error");
       }
     } else if (memcmp(command, "import ", 7) == 0) {
       importCard(&command[7]);
@@ -481,48 +480,49 @@ public:
       if (memcmp(config, "af ", 3) == 0) {
         _prefs.airtime_factor = atof(&config[3]);
         savePrefs();
-        Serial.println("  OK");
+        Serial1.println("  OK");
       } else if (memcmp(config, "name ", 5) == 0) {
         StrHelper::strncpy(_prefs.node_name, &config[5], sizeof(_prefs.node_name));
         savePrefs();
-        Serial.println("  OK");
+        Serial1.println("  OK");
       } else if (memcmp(config, "lat ", 4) == 0) {
         _prefs.node_lat = atof(&config[4]);
         savePrefs();
-        Serial.println("  OK");
+        Serial1.println("  OK");
       } else if (memcmp(config, "lon ", 4) == 0) {
         _prefs.node_lon = atof(&config[4]);
         savePrefs();
-        Serial.println("  OK");
+        Serial1.println("  OK");
       } else if (memcmp(config, "tx ", 3) == 0) {
         _prefs.tx_power_dbm = atoi(&config[3]);
         savePrefs();
-        Serial.println("  OK - reboot to apply");
+        Serial1.println("  OK - reboot to apply");
       } else if (memcmp(config, "freq ", 5) == 0) {
         _prefs.freq = atof(&config[5]);
         savePrefs();
-        Serial.println("  OK - reboot to apply");
+        Serial1.println("  OK - reboot to apply");
       } else {
-        Serial.printf("  ERROR: unknown config: %s\n", config);
+        Serial1.printf("  ERROR: unknown config: %s\n", config);
       }
     } else if (memcmp(command, "ver", 3) == 0) {
-      Serial.println(FIRMWARE_VER_TEXT);
+      Serial1.println(FIRMWARE_VER_TEXT);
     } else if (memcmp(command, "help", 4) == 0) {
-      Serial.println("Commands:");
-      Serial.println("   set {name|lat|lon|freq|tx|af} {value}");
-      Serial.println("   card");
-      Serial.println("   import {biz card}");
-      Serial.println("   clock");
-      Serial.println("   time <epoch-seconds>");
-      Serial.println("   list {n}");
-      Serial.println("   to <recipient name or prefix>");
-      Serial.println("   to");
-      Serial.println("   send <text>");
-      Serial.println("   advert");
-      Serial.println("   reset path");
-      Serial.println("   public <text>");
+      Serial1.println("Commands:");
+      Serial1.println("set {name|lat|lon|freq|tx|af} {value}");
+      Serial1.println("card");
+      Serial1.println("import {biz card}");
+      Serial1.println("clock");
+      Serial1.println("time <epoch-seconds>");
+      Serial1.println("list {n}");
+      Serial1.println("to <recipient name or prefix>");
+      Serial1.println("to");
+      Serial1.println("send <text>");
+      Serial1.println("advert");
+      Serial1.println("reset path");
+      Serial1.println("public <text>");
     } else {
-      Serial.print("   ERROR: unknown command: "); Serial.println(command);
+      //Serial1.print("ERROR: unknown commmmmmand: "); Serial1.println(command);
+      Serial1.println("no.");
     }
   }
 
@@ -537,8 +537,9 @@ public:
       command[0] = 0;
       len = 0;
     }
-    while (Serial.available() && len < sizeof(command)-1) {
-      char c = Serial.read();
+
+    while (Serial1.available() && len < sizeof(command)-1) {
+      char c = Serial1.read();
       if (c != '\n') { 
         command[len++] = c;
         command[len] = 0;
@@ -569,6 +570,7 @@ void halt() {
 
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(9600, SERIAL_8N1, D7, D6);
 
   board.begin();
 
