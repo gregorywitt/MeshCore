@@ -8,7 +8,11 @@
 #include <helpers/AutoDiscoverRTCClock.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #ifdef DISPLAY_CLASS
-  #include <helpers/ui/SSD1306Display.h>
+  #if defined(EINK_DISPLAY_MODEL)
+    #include <helpers/ui/GxEPDDisplay.h>
+  #else
+    #include <helpers/ui/SSD1306Display.h>
+  #endif
   #include <helpers/ui/MomentaryButton.h>
 #endif
 #include "XiaoS3WIOBoard.h"
