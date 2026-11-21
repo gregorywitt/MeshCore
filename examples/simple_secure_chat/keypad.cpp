@@ -17,14 +17,43 @@ void Keypad::update() {
         }
 
         int key = Serial1.read();
+        //Serial.print("key: ");
+        //Serial.println(key);
+
+        if (key == 3) {
+            scroll_delta++;
+            key_cycle = 0;
+            last_key = key;
+            continue;
+        }
+
+        if (key == 0) {
+            scroll_delta--;
+            key_cycle = 0;
+            last_key = key;
+            continue;
+        }
+
+        if (key == 4) {
+            uppercase = !uppercase;
+            key_cycle = 0;
+            new_input = true;
+            last_key = key;
+            continue;
+        }
 
         // left arrow button
         if (key == 16) {
-            if (len > 0) {
-                len--;
-                key_cycle = 0;
+            if (str_in[len] != '\0') {
                 str_in[len] = '\0';
+                if (len > 0) {
+                    len--;
+                }
             }
+            key_cycle = 0;
+            new_input = true;
+            last_key = key;
+            continue;
         }
        
         // right arrow button
@@ -51,10 +80,16 @@ void Keypad::update() {
         if (key ==  8) { str_in[len] = _7_key[key_cycle]; key_cycle++; if (key_cycle == 5) key_cycle = 0; }
         if (key ==  7) { str_in[len] = _8_key[key_cycle]; key_cycle++; if (key_cycle == 4) key_cycle = 0; }
         if (key ==  6) { str_in[len] = _9_key[key_cycle]; key_cycle++; if (key_cycle == 5) key_cycle = 0; }
-        if (key ==  4) { str_in[len] = _0_key[key_cycle]; key_cycle++; if (key_cycle == 1) key_cycle = 0; }
+
+        if (uppercase && key >= 6 && key <= 14 &&
+            str_in[len] >= 'a' && str_in[len] <= 'z') {
+            str_in[len] = str_in[len] - 'a' + 'A';
+        }
         
         // enter button
         if (key ==  2) { key_cycle = 0; command_ready = true; }
+
+        if (key == 99) power_down = true;
 
         new_input = true;
 
@@ -77,9 +112,16 @@ const bool Keypad::isCommandReady() {
     return false;
 }
 
+int Keypad::takeScrollDelta() {
+    const int delta = scroll_delta;
+    scroll_delta = 0;
+    return delta;
+}
+
 void Keypad::clear() {
     len = 0;
     str_in[0] = '\0';
     key_cycle = 0;
+    scroll_delta = 0;
     command_ready = false;
 }

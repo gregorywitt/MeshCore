@@ -6,7 +6,9 @@ public:
     bool hasNewInput() const { return new_input; }
     const char* getInput();
     const bool isCommandReady();
+    int takeScrollDelta();
     void clear();
+    bool isPoweringDown() const { return power_down; }
     
 private:
     char str_in[522];
@@ -14,7 +16,10 @@ private:
     bool new_input = false;
     int last_key = 0;
     int key_cycle = 0;
+    int scroll_delta = 0;
+    bool uppercase = false;
     bool command_ready = false;
+    bool power_down = false;
 
     const char _1_key[3] = {'.', ',', '1'};
     const char _2_key[4] = {'a', 'b', 'c', '2'};
@@ -25,5 +30,4 @@ private:
     const char _7_key[5] = {'p', 'q', 'r', 's', '7'};
     const char _8_key[4] = {'t', 'u', 'v', '8'};
     const char _9_key[5] = {'w', 'x', 'y', 'z', '9'};
-    const char _0_key[1] = {'0'};
 };
