@@ -206,6 +206,11 @@ protected:
   }
 
   bool allowPacketForward(const mesh::Packet* packet) override {
+    return false;
+  }
+
+  bool shouldAutoAddContactType(uint8_t contact_type) const override {
+    if (contact_type == ADV_TYPE_REPEATER) return false;
     return true;
   }
 
@@ -215,7 +220,7 @@ protected:
     Serial.printf("ADVERT from -> %s\n", contact.name);
     Serial.printf("  type: %s\n", getTypeName(contact.type));
     Serial.print("   public key: "); mesh::Utils::printHex(Serial, contact.id.pub_key, PUB_KEY_SIZE); Serial.println();
-    ui.show("Discovered contact: ", contact.name);
+    ui.show("new contact: ", contact.name);
 
     saveContacts();
   }
