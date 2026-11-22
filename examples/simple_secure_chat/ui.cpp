@@ -18,6 +18,20 @@ bool UI::beginDisplay() {
 void UI::update() {
   keypad.update();
 
+  if (keypad.newBattStatus()) {
+    const int batt_status = keypad.getBattStatus();
+    // Handle battery status update here
+    if(batt_status <= 10) {
+      int percent = batt_status * 10;
+      show("batt ", percent, "%");
+      Serial.printf("batt %d%%\n", percent);
+    }
+    if(batt_status == 11) show("batt full");
+    if(batt_status == 12) show("batt charging");
+    if(batt_status == 13) show("batt low");
+    if(batt_status == 14) show("batt ok");
+  }
+
   const int scroll_delta = keypad.takeScrollDelta();
   if (scroll_delta > 0) {
     scroll_offset += static_cast<size_t>(scroll_delta);

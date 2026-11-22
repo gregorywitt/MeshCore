@@ -266,13 +266,13 @@ protected:
   void onChannelMessageRecv(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t timestamp, const char *text) override {
     if (pkt->isRouteDirect()) {
       Serial.printf("PUBLIC CHANNEL MSG -> (Direct!)\n");
-      ui.show("Public channel message received (Direct!)");
+      //ui.show("Public channel message received (Direct!)");
     } else {
       Serial.printf("PUBLIC CHANNEL MSG -> (Flood) hops %d\n", pkt->path_len);
-      ui.show("Public channel message received (Flood) hops ", pkt->path_len);
+      //ui.show("Public channel message received (Flood) hops ", pkt->path_len);
     }
     Serial.printf("   %s\n", text);
-    ui.show("Public channel message content: ", text);
+    ui.show("Public: ", text);
   }
 
   uint8_t onContactRequest(const ContactInfo& contact, uint32_t sender_timestamp, const uint8_t* data, uint8_t len, uint8_t* reply) override {

@@ -9,6 +9,15 @@ public:
     int takeScrollDelta();
     void clear();
     bool isPoweringDown() const { return power_down; }
+    bool newBattStatus(){
+        if (batt_status != -1) return true;
+        return false;
+    }
+    int getBattStatus() {
+        int s = batt_status;
+        batt_status = -1; 
+        return s; 
+    } 
     
 private:
     char str_in[522];
@@ -20,6 +29,7 @@ private:
     bool uppercase = false;
     bool command_ready = false;
     bool power_down = false;
+    int batt_status = -1;
 
     const char _1_key[3] = {'.', ',', '1'};
     const char _2_key[4] = {'a', 'b', 'c', '2'};

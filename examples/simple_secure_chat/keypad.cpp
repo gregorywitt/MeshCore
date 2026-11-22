@@ -81,6 +81,7 @@ void Keypad::update() {
         if (key ==  7) { str_in[len] = _8_key[key_cycle]; key_cycle++; if (key_cycle == 4) key_cycle = 0; }
         if (key ==  6) { str_in[len] = _9_key[key_cycle]; key_cycle++; if (key_cycle == 5) key_cycle = 0; }
 
+        // change to uppercase if needed
         if (uppercase && key >= 6 && key <= 14 &&
             str_in[len] >= 'a' && str_in[len] <= 'z') {
             str_in[len] = str_in[len] - 'a' + 'A';
@@ -90,6 +91,10 @@ void Keypad::update() {
         if (key ==  2) { key_cycle = 0; command_ready = true; }
 
         if (key == 99) power_down = true;
+
+        if (key >= 100 && key <= 114){
+            batt_status = key - 100;
+        }
 
         new_input = true;
 
