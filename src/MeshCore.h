@@ -15,7 +15,7 @@
 
 // V1
 #define CIPHER_MAC_SIZE      2
-#define PATH_HASH_SIZE       1
+#define PATH_HASH_SIZE       2
 
 #define MAX_PACKET_PAYLOAD  184
 #define MAX_GROUP_DATA_LENGTH  (MAX_PACKET_PAYLOAD - CIPHER_BLOCK_SIZE - 3)
