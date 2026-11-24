@@ -71,7 +71,7 @@ void Keypad::update() {
             str_in[len] = '\0';
         }
         
-        if (key == 14) { str_in[len] = _1_key[key_cycle]; key_cycle++; if (key_cycle == 3) key_cycle = 0; }
+        if (key == 14) { str_in[len] = _1_key[key_cycle]; key_cycle++; if (key_cycle == 5) key_cycle = 0; }
         if (key == 13) { str_in[len] = _2_key[key_cycle]; key_cycle++; if (key_cycle == 4) key_cycle = 0; }
         if (key == 12) { str_in[len] = _3_key[key_cycle]; key_cycle++; if (key_cycle == 4) key_cycle = 0; }
         if (key == 11) { str_in[len] = _4_key[key_cycle]; key_cycle++; if (key_cycle == 4) key_cycle = 0; }

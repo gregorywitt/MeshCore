@@ -84,6 +84,31 @@ class MyMesh : public BaseChatMesh, ContactVisitor {
   uint8_t tmp_buf[256];
   char hex_buf[512];
 
+  bool captureNextTextTx = false;
+  bool trackingSentText = false;
+  uint8_t sentTextHash[MAX_HASH_SIZE];
+  uint32_t repeatsHeard = 0;
+
+  void logTx(mesh::Packet* packet, int len) override {
+    if (captureNextTextTx && packet->getPayloadType() == PAYLOAD_TYPE_TXT_MSG) {
+      packet->calculatePacketHash(sentTextHash);
+      captureNextTextTx = false;
+      trackingSentText = true;
+      repeatsHeard = 0;
+    }
+  }
+
+  void logRx(mesh::Packet* packet, int len, float score) override {
+    if (!trackingSentText || packet->getPayloadType() != PAYLOAD_TYPE_TXT_MSG) return;
+
+    uint8_t hash[MAX_HASH_SIZE];
+    packet->calculatePacketHash(hash);
+    if (memcmp(hash, sentTextHash, MAX_HASH_SIZE) == 0) {
+      repeatsHeard++;
+      ui.show("repeats heard: ", repeatsHeard);
+    }
+  }
+
   const char* getTypeName(uint8_t type) const {
     if (type == ADV_TYPE_CHAT) return "Chat";
     if (type == ADV_TYPE_REPEATER) return "Repeater";
@@ -220,7 +245,7 @@ protected:
     Serial.printf("ADVERT from -> %s\n", contact.name);
     Serial.printf("  type: %s\n", getTypeName(contact.type));
     Serial.print("   public key: "); mesh::Utils::printHex(Serial, contact.id.pub_key, PUB_KEY_SIZE); Serial.println();
-    ui.show("new contact: ", contact.name);
+    if(contact.type != ADV_TYPE_REPEATER) ui.show("new contact: ", contact.name);
 
     saveContacts();
   }
@@ -418,28 +443,34 @@ public:
     if (strlen(contact.name) > 0) ui.show(contact.name);
   }
 
+  void sendTextMessage(const char* msg) {
+    if (curr_recipient) {
+      const char *text = msg;
+      uint32_t est_timeout;
+
+      captureNextTextTx = true;
+      int result = sendMessage(*curr_recipient, getRTCClock()->getCurrentTime(), 0, text, expected_ack_crc, est_timeout);
+      if (result == MSG_SEND_FAILED) {
+        Serial.println("   ERROR: unable to send.");
+        ui.show("Send failed");
+        captureNextTextTx = false;
+      } else {
+        last_msg_sent = _ms->getMillis();
+        expected_ack_contact = curr_recipient;
+        Serial.printf("   (message sent - %s)\n", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
+        ui.show("Message sent ", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
+      }
+    } else {
+      Serial.println("   ERROR: no recipient selected (use 'to' cmd).");
+      ui.show("No recipient selected");
+    }
+  }
+
   void handleCommand(const char* command) {
     while (*command == ' ') command++;  // skip leading spaces
 
     if (memcmp(command, "send ", 5) == 0) {
-      if (curr_recipient) {
-        const char *text = &command[5];
-        uint32_t est_timeout;
-
-        int result = sendMessage(*curr_recipient, getRTCClock()->getCurrentTime(), 0, text, expected_ack_crc, est_timeout);
-        if (result == MSG_SEND_FAILED) {
-          Serial.println("   ERROR: unable to send.");
-          ui.show("Send failed");
-        } else {
-          last_msg_sent = _ms->getMillis();
-          expected_ack_contact = curr_recipient;
-          Serial.printf("   (message sent - %s)\n", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
-          ui.show("Message sent ", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
-        }
-      } else {
-        Serial.println("   ERROR: no recipient selected (use 'to' cmd).");
-        ui.show("No recipient selected");
-      }
+      sendTextMessage(&command[5]);
     } else if (memcmp(command, "public ", 7) == 0) {  // send GroupChannel msg
       uint8_t temp[5+MAX_TEXT_LEN+32];
       uint32_t timestamp = getRTCClock()->getCurrentTime();
@@ -503,7 +534,7 @@ public:
         Serial.println("   ERR: unable to send");
         ui.show("Advert failed");
       }
-    } else if (strcmp(command, "reset path") == 0) {
+    } else if (strcmp(command, "reset path") == 0 || strcmp(command, "rp") == 0) {
       if (curr_recipient) {
         resetPathTo(*curr_recipient);
         saveContacts();
@@ -609,26 +640,11 @@ public:
         "reset path\n"
         "clear contacts\n"
         "public <text>\n");
+    } else if (curr_recipient && strlen(command) > 0){
+      sendTextMessage(command);
     } else {
-      if (curr_recipient && strlen(command) > 0){
-        uint32_t est_timeout;
-        int result = sendMessage(*curr_recipient, getRTCClock()->getCurrentTime(), 0, command, expected_ack_crc, est_timeout);
-        if (result == MSG_SEND_FAILED) {
-          Serial.println("   ERROR: unable to send.");
-          ui.show("Send failed");
-        } else {
-          last_msg_sent = _ms->getMillis();
-          expected_ack_contact = curr_recipient;
-          Serial.printf("   (message sent - %s)\n", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
-          ui.show("Message sent ", result == MSG_SEND_SENT_FLOOD ? "FLOOD" : "DIRECT");
-        }
-      }
-      else if (strlen(command) == 0) {
-      }
-      else{
-        ui.show("no command / no recipient");
-        Serial.print("ERROR: unknown commmmmmand: "); Serial.println(command);
-      }
+      ui.show("not a command");
+      Serial.print("ERROR: unknown command: "); Serial.println(command);
     }
   }
   

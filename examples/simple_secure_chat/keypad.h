@@ -31,7 +31,7 @@ private:
     bool power_down = false;
     int batt_status = -1;
 
-    const char _1_key[3] = {'.', ',', '1'};
+    const char _1_key[5] = {'.', ',', '?', '!', '1'};
     const char _2_key[4] = {'a', 'b', 'c', '2'};
     const char _3_key[4] = {'d', 'e', 'f', '3'};
     const char _4_key[4] = {'g', 'h', 'i', '4'};
