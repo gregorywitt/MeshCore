@@ -44,7 +44,7 @@
 
 #include <helpers/BaseChatMesh.h>
 
-#define SEND_TIMEOUT_BASE_MILLIS          500
+#define SEND_TIMEOUT_BASE_MILLIS          1000
 #define FLOOD_SEND_TIMEOUT_FACTOR         16.0f
 #define DIRECT_SEND_PERHOP_FACTOR         6.0f
 #define DIRECT_SEND_PERHOP_EXTRA_MILLIS   250
@@ -88,6 +88,7 @@ class MyMesh : public BaseChatMesh, ContactVisitor {
   bool trackingSentText = false;
   uint8_t sentTextHash[MAX_HASH_SIZE];
   uint32_t repeatsHeard = 0;
+  bool dumpRx = false;
 
   void logTx(mesh::Packet* packet, int len) override {
     if (captureNextTextTx && packet->getPayloadType() == PAYLOAD_TYPE_TXT_MSG) {
@@ -99,6 +100,7 @@ class MyMesh : public BaseChatMesh, ContactVisitor {
   }
 
   void logRx(mesh::Packet* packet, int len, float score) override {
+    if (dumpRx) ui.show("rx. score: ", score);
     if (!trackingSentText || packet->getPayloadType() != PAYLOAD_TYPE_TXT_MSG) return;
 
     uint8_t hash[MAX_HASH_SIZE];
@@ -325,6 +327,16 @@ protected:
   void onSendTimeout() override {
     Serial.println("   ERROR: timed out, no ACK.");
     ui.show("Send timeout occurred");
+  }
+
+  void setRxBoostedGainMode(bool enable) {
+    if (radio_driver.setRxBoostedGainMode(enable)) {
+      Serial.println("RX boosted gain mode changed");
+      ui.show("RX boosted gain mode changed");
+    } else {
+      Serial.println("RX boosted gain mode not supported");
+      ui.show("RX boosted gain mode not supported");
+    }
   }
 
 public:
@@ -639,7 +651,20 @@ public:
         "advert\n"
         "reset path\n"
         "clear contacts\n"
-        "public <text>\n");
+        "public <text>\n"
+        "boost on|off\n"
+        "dumprx on|off\n"
+      );
+    } else if (memcmp(command, "boost on", 8) == 0) {
+      setRxBoostedGainMode(true);
+    } else if (memcmp(command, "boost off", 9) == 0) {
+      setRxBoostedGainMode(false);
+    } else if (memcmp(command, "dumprx on", 9) == 0) {
+      dumpRx = true;
+      ui.show("Rx dump enabled");
+    } else if (memcmp(command, "dumprx off", 10) == 0) {
+      dumpRx = false;
+      ui.show("Rx dump disabled");
     } else if (curr_recipient && strlen(command) > 0){
       sendTextMessage(command);
     } else {
